@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>FMI Check</title>
+<link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+<div class="wrap">
+  <header><div class="brand">FMI<span>CHECK</span></div><div class="sub">Apple Device Status</div></header>
+  <main class="card">
+    <h1>فحص جهاز Apple</h1>
+    <p class="muted">أدخل IMEI أو Serial Number ثم اضغط فحص.</p>
+    <div class="form">
+      <input id="input" autocomplete="off" placeholder="Serial Number / IMEI">
+      <button id="check">فحص الآن</button>
+    </div>
+    <div id="msg"></div>
+    <section id="result" class="result hidden"></section>
+  </main>
+  <footer>FMI Check • API powered by IMEI.org</footer>
+</div>
+<script>
+const $=s=>document.querySelector(s);
+$("#check").onclick=async()=>{
+  const input=$("#input").value.trim();
+  if(!input){showMsg("دخل Serial Number أو IMEI.","err");return}
+  $("#check").disabled=true; $("#check").textContent="جاري الفحص...";
+  showMsg("جاري الاتصال بالخدمة...","info"); $("#result").classList.add("hidden");
+  try{
+    const r=await fetch("/api/check",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({input})});
+    const d=await r.json();
+    if(!d.ok) throw new Error(typeof d.error==="string"?d.error:JSON.stringify(d.error));
+    render(d.result); showMsg("تم الفحص بنجاح.","ok");
+  }catch(e){showMsg(e.message,"err")}
+  finally{$("#check").disabled=false;$("#check").textContent="فحص الآن"}
+};
+$("#input").addEventListener("keydown",e=>{if(e.key==="Enter")$("#check").click()});
+function showMsg(t,c){$("#msg").className=c;$("#msg").textContent=t}
+function render(x){
+ const fields=[
+ ["Model","الموديل"],["Serial Number","Serial Number"],["IMEI","IMEI"],
+ ["FMI","FMI"],["iCloud","iCloud"],["Activated","Activated"],
+ ["Simlock","Simlock"],["Warranty Status","الضمان"],["Estimated Purchase Date","تاريخ الشراء"],
+ ["Valid Purchase Date","صلاحية الشراء"],["Apple Care","Apple Care"]
+ ];
+ $("#result").innerHTML=fields.filter(([k])=>x?.[k]!==undefined)
+ .map(([k,l])=>`<div class="row"><b>${l}</b><span class="${k==='FMI'?'fmi':''}">${esc(String(x[k]))}</span></div>`).join("");
+ $("#result").classList.remove("hidden");
+}
+function esc(s){return s.replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[m]))}
+</script>
+</body></html>
