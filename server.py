@@ -5,7 +5,6 @@ from flask import Flask, request, jsonify, render_template
 app = Flask(__name__)
 
 API_KEY = os.getenv("IMEI_API_KEY")
-API_BASE = os.getenv("IMEI_API_BASE", "https://api-client.imei.org/api")
 
 @app.route("/")
 def home():
@@ -17,29 +16,35 @@ def check_fmi():
     serial = data.get("serial", "").strip()
 
     if not serial:
-        return jsonify({"error": "Serial number is required"}), 400
+        return jsonify({"error": "Enter serial number"}), 400
 
     if not API_KEY:
-        return jsonify({"error": "API key is not configured"}), 500
+        return jsonify({"error": "API key is missing"}), 500
 
     try:
-        response = requests.post(
-            API_BASE,
-            headers={
-                "Authorization": f"Bearer {API_KEY}",
-                "Content-Type": "application/json"
-            },
-            json={
-                "service_id": 171,
-                "serial": serial
+        response = requests.get(
+            "https://api-client.imei.org/api/submit",
+            params={
+                "apikey": API_KEY,
+                "service_id": "171",
+                "input": serial
             },
             timeout=30
         )
 
-        return jsonify(response.json()), response.status_code
+        return jsonify({
+            "status_code": response.status_code,
+            "response": response.json()
+        })
 
-    except Exception as e:
-        return jsonify({"error": str(e)}), 500
+    except requests.exceptions.RequestException as e:
+        return jsonify({"error": f"API connection failed: {str(e)}"}), 502
+
+    except ValueError:
+        return jsonify({
+            "status_code": response.status_code,
+            "response": response.text
+        }), response.status_code
 
 
 if __name__ == "__main__":
