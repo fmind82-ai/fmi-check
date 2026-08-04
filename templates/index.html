@@ -1,13 +1,137 @@
-
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>FMI Check</title>
+
+    <style>
+        body {
+            margin: 0;
+            font-family: Arial, sans-serif;
+            background: #f5f5f7;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+        }
+
+        .box {
+            width: 90%;
+            max-width: 450px;
+            background: white;
+            padding: 30px;
+            border-radius: 18px;
+            box-shadow: 0 5px 25px rgba(0,0,0,.1);
+            text-align: center;
+        }
+
+        h1 {
+            margin-bottom: 25px;
+        }
+
+        input {
+            width: 100%;
+            box-sizing: border-box;
+            padding: 15px;
+            border: 1px solid #ccc;
+            border-radius: 10px;
+            font-size: 16px;
+            margin-bottom: 15px;
+        }
+
+        button {
+            width: 100%;
+            padding: 15px;
+            border: 0;
+            border-radius: 10px;
+            background: #111;
+            color: white;
+            font-size: 17px;
+            cursor: pointer;
+        }
+
+        button:disabled {
+            opacity: .6;
+        }
+
+        #result {
+            margin-top: 20px;
+            padding: 15px;
+            border-radius: 10px;
+            background: #f1f1f1;
+            display: none;
+        }
+    </style>
 </head>
+
 <body>
+
+<div class="box">
     <h1>FMI Check</h1>
-    <p>Server is working.</p>
+
+    <input
+        type="text"
+        id="serial"
+        placeholder="Enter iPhone Serial Number"
+        autocomplete="off"
+    >
+
+    <button id="checkBtn" onclick="checkFMI()">
+        Check FMI
+    </button>
+
+    <div id="result"></div>
+</div>
+
+<script>
+async function checkFMI() {
+    const serial = document.getElementById("serial").value.trim();
+    const result = document.getElementById("result");
+    const button = document.getElementById("checkBtn");
+
+    if (!serial) {
+        result.style.display = "block";
+        result.innerText = "Please enter a serial number.";
+        return;
+    }
+
+    button.disabled = true;
+    button.innerText = "Checking...";
+    result.style.display = "block";
+    result.innerText = "Checking FMI...";
+
+    try {
+        const response = await fetch("/check-fmi", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify({
+                serial: serial
+            })
+        });
+
+        const data = await response.json();
+
+        if (data.fmi !== undefined) {
+            result.innerText = "FMI: " + data.fmi;
+        } else if (data.result) {
+            result.innerText = data.result;
+        } else if (data.error) {
+            result.innerText = "Error: " + data.error;
+        } else {
+            result.innerText = JSON.stringify(data);
+        }
+
+    } catch (error) {
+        result.innerText = "Connection error.";
+    }
+
+    button.disabled = false;
+    button.innerText = "Check FMI";
+}
+</script>
+
 </body>
-</html>
+    </html>
